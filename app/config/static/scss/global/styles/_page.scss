@@ -1,0 +1,9 @@
+%page-width {
+  width: calc(100% - #{$page-gutter});
+  margin-left: auto;
+  margin-right: auto;
+
+  @if ($max-page-width != 0) {
+    max-width: $max-page-width;
+  }
+}

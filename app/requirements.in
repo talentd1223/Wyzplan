@@ -1,0 +1,36 @@
+dj-database-url
+django
+django-cors-headers
+django-debug-toolbar
+django-environ
+django-mail-viewer
+django-redis
+django-widget-tweaks
+djangorestframework
+djangorestframework-simplejwt
+gunicorn
+pillow
+psycopg2-binary
+python-dateutil
+python-dotenv
+whitenoise
+django-deprecate-fields
+django-add-default-value
+
+# Plaid integration
+plaid-python==8.0.0b12
+
+# Feature flags
+django-waffle
+
+# Logging
+django-structlog
+sentry_sdk
+structlog
+structlog-sentry
+
+django-q
+croniter  # use with django-q for cron schedules
+boto3
+django-storages
+tblib

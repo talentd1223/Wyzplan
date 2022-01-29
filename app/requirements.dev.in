@@ -1,0 +1,28 @@
+-c requirements.txt
+
+factory-boy
+coverage
+django_coverage_plugin
+vcrpy
+freezegun
+honcho
+dj-inmemorystorage
+
+# formatters/linters
+flake8
+flake8-django
+black
+isort
+# 1.4.5 required for the -c flag
+djhtml>=1.4.5
+
+# Static analysis
+mypy
+django-stubs
+types-python-dateutil
+types-freezegun
+types-requests
+
+# system upgrades
+pyupgrade
+django-upgrade

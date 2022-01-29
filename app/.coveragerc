@@ -1,0 +1,44 @@
+# base initial configuration from http://coverage.readthedocs.io/en/latest/config.html
+# We ignore admin.py since we do not heavily rely on django-admin but it could be good to write tests for it
+# based on https://github.com/django/django/blob/master/tests/modeladmin/tests.py
+[run]
+branch = True
+concurrency = multiprocessing
+source = .
+omit =
+    */migrations/*
+    config/wsgi.py
+    config/asgi.py
+    config/settings/*.py
+    config/templates/404.html
+    config/templates/500.html
+    manage.py
+    wyzplan/*/apps.py
+    wyzplan/*/admin.py
+    wyzplan/frontend/*
+    */node_modules/*
+    */.venv/*
+    requirements.*
+plugins =
+    django_coverage_plugin
+
+[report]
+fail_under = 80
+show_missing = True
+skip_covered = True
+exclude_lines =
+    pragma: no cover
+
+    if self\.debug
+
+    raise AssertionError
+    raise NotImplementedError
+
+    if 0:
+    if __name__ == .__main__.:
+
+
+ignore_errors = True
+
+[html]
+directory = coverage_html_report

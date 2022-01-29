@@ -1,0 +1,21 @@
+name: "Setup Docker Image"
+description: "Pulls the docker image for this test run from ghcr.io and tags appropriately for the docker-compose stack.\nAssumes you are already logged into the registry. Enforces specific tags."
+inputs:
+  pull-image:
+    description: 'The full name of the image to pull.\nExample: "ghcr.io/mobelux/wyzplan/wyzplan'
+    required: true
+outputs:
+  pulled-image-name:
+    description: "The full image name and tag, including registry"
+    value: ${{ steps.pull-and-tag-image.outputs.pulled-image-name }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Pull and Tag Image
+      id: pull-and-tag-image
+      shell: bash
+      run: |
+        docker pull ${{ inputs.pull-image }}
+        docker tag ${{ inputs.pull-image }} wyzplan-dev
+        echo "::set-output name=pulled-image-name::${{ inputs.pull-image }}"

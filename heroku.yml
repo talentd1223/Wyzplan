@@ -1,0 +1,11 @@
+build:
+  docker:
+    web: Dockerfile
+
+run:
+  web: gunicorn --log-file=- --worker-class=gthread --threads=${GUNICORN_THREADS:-4} --timeout=30 --bind=0.0.0.0:$PORT config.wsgi:application
+
+release:
+  image: web
+  command:
+   - python manage.py migrate --no-input

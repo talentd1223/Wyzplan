@@ -1,0 +1,167 @@
+
+name: Tests And Linting
+on:
+  push:
+    branches:
+      - main
+      - production
+      - release-*
+  pull_request:
+    branches:
+      - main
+      - release-*
+env:
+  CONTAINER_REGISTRY: ghcr.io
+
+jobs:
+  build_image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      full-image-name: ${{ steps.build-docker-image.outputs.full-image-name }}
+      branch: ${{ steps.extract_branch.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Extract Branch Name
+        uses: ./.github/actions/extract-branch-name
+        id: extract_branch
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Docker Image
+        id: build-docker-image
+        # TODO: build the image with --target=build and push that up as `:build` tag IF this is the `main` branch
+        # if not themain branch, pull `:build` tag and use it in --cache-from
+        # but currently this is not playing nicely if the image to pull does not already exist
+        run: |
+          docker build -t ${{ env.CONTAINER_REGISTRY}}/${GITHUB_REPOSITORY,,}:${{ steps.extract_branch.outputs.branch-slug }}_${GITHUB_SHA} .
+          docker push ${{ env.CONTAINER_REGISTRY}}/${GITHUB_REPOSITORY,,}:${{ steps.extract_branch.outputs.branch-slug }}_${GITHUB_SHA}
+          echo "::set-output name=full-image-name::${{ env.CONTAINER_REGISTRY}}/${GITHUB_REPOSITORY,,}:${{ steps.extract_branch.outputs.branch-slug }}_${GITHUB_SHA}"
+  test:
+    name: Run Tests
+    needs: build_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - name: Setup Image
+        uses: ./.github/actions/setup-docker-image
+        with:
+          pull-image: ${{ needs.build_image.outputs.full-image-name }}
+      - name: Tests
+        shell: bash
+        run: docker compose --profile=ci run --service-ports --rm django_ci python manage.py test --parallel
+  flake8:
+    name: Flake8
+    needs: build_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - name: Setup Image
+        uses: ./.github/actions/setup-docker-image
+        with:
+          pull-image: ${{ needs.build_image.outputs.full-image-name }}
+      - name: Flake8
+        run: docker compose --profile=ci run --service-ports --rm django_ci make flake8
+  isort:
+    name: isort
+    needs: build_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - name: Setup Image
+        uses: ./.github/actions/setup-docker-image
+        with:
+          pull-image: ${{ needs.build_image.outputs.full-image-name }}
+      - name: isort
+        run: docker compose --profile=ci run --service-ports --rm django_ci make isort-check
+  djhtml:
+    name: djhtml
+    needs: build_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - name: Setup Image
+        uses: ./.github/actions/setup-docker-image
+        with:
+          pull-image: ${{ needs.build_image.outputs.full-image-name }}
+      - name: djhtml
+        run: docker compose --profile=ci run --service-ports --rm django_ci make djhtml-check
+  static_analysis:
+    name: Static Analysis
+    needs: build_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+      - name: Setup Image
+        uses: ./.github/actions/setup-docker-image
+        with:
+          pull-image: ${{ needs.build_image.outputs.full-image-name }}
+      - name: mypy
+        run: docker compose --profile=ci run --service-ports --rm django_ci make mypy
+
+  deploy_dev:
+    if: ${{ needs.build_image.outputs.branch == 'main' && github.event_name == 'push' }}
+    needs: [build_image, static_analysis, djhtml, isort, flake8, test]
+    uses: Mobelux/wyzplan/.github/workflows/deploy_to_dev.yml@main
+    secrets:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+  deploy_uat:
+    if: ${{ startsWith(needs.build_image.outputs.branch,'release-') && github.event_name == 'push' }}
+    needs: [build_image, static_analysis, djhtml, isort, flake8, test]
+    # TODO: maybe tag a specific version of the workflow to use for know stable github actions.
+    # For now, keep it simple since this really should almost never change.
+    uses: Mobelux/wyzplan/.github/workflows/deploy_to_uat.yml@main
+    secrets:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+

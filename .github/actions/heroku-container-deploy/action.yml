@@ -1,0 +1,76 @@
+
+name: "Heroku Container Deploy"
+description: "Tags the source image appropriately for the specified Heroku app, pushes to the Heroku Container Registry, and then deploys"
+inputs:
+  source-image:
+    description: 'The full name of the image to deploy to Heroku.\nExample: "ghcr.io/mobelux/example-web\nDefault:example-web"'
+    required: true
+  heroku-app-name:
+    description: "The name of the heroku app to deploy"
+    required: true
+  production-environment:
+    description: "Specifies if the given environment is one that end-users directly interact with. Pass the string 'true' for true. Default: false"
+    required: false
+    default: "false"
+  environment-url:
+    description: "The URL used to access this environment."
+    required: true
+  github-token:
+    description: "Token used to access the GitHub REST API."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Log in to Heroku container registry
+      shell: bash
+      run: heroku container:login
+    - name: push
+      shell: bash
+      run: |
+        docker tag ${{ inputs.source-image }} registry.heroku.com/${{ inputs.heroku-app-name }}/web
+        docker tag ${{ inputs.source-image }} registry.heroku.com/${{ inputs.heroku-app-name }}/worker
+        docker tag ${{ inputs.source-image }} registry.heroku.com/${{ inputs.heroku-app-name }}/release
+        docker push registry.heroku.com/${{ env.HEROKU_APP_NAME }}/web
+        docker push registry.heroku.com/${{ env.HEROKU_APP_NAME }}/worker
+        docker push registry.heroku.com/${{ env.HEROKU_APP_NAME }}/release
+    - name: release
+      shell: bash
+      run: heroku container:release -a ${{ inputs.heroku-app-name }} web worker release
+    - name: Create Github Deployment
+      # TODO: figure out the actions version of continue-on-success which seems to only work in a workflow, not an action
+      # otherwise may need to move the api interractions back out to the workflow files to be able to set failure, etc.
+      shell: bash
+      id: "create-github-deployment"
+      # We could create the deployment before running container:release or even before pushing
+      # and create an in_progress status
+      # and then afterwards create a new status of failure or success if we can continue the jobs even if they fail.
+      # An empty list of required_contexts is used here because with how we are doing this, all required contexts
+      # have already passed. The default is all contexts need to have passed - and that includes our current one
+      # which is still running and so has not passed. This could be useful for validating that deployment to dev
+      # has happened before UAT and UAT before prod, again, by putting the deployment creation before the actual release.
+      run: |
+        curl -X POST -H "Accept: application/vnd.github.v3+json" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/deployments \
+        --header 'authorization: Bearer ${{ inputs.github-token }}' \
+        -d "{
+              \"ref\": \"${GITHUB_SHA}\",
+              \"auto_merge\": false,
+              \"environment\": \"${{ inputs.heroku-app-name }}\",
+              \"production_environment\": ${{ inputs.production-environment }},
+              \"payload\": {\"web_url\": \"${{ inputs.environment-url }}\"},
+              \"required_contexts\": []
+            }" -o deploy.json
+        cat deploy.json
+        STATUS_URL=$(cat deploy.json | jq -r '.statuses_url')
+        echo "::set-output name=status-url::$STATUS_URL"
+    - name: Set Deployment Status To Success
+      shell: bash
+      run: |
+        curl -X POST -H "Accept: application/vnd.github.v3+json" ${{ steps.create-github-deployment.outputs.status-url}} \
+        --header 'authorization: Bearer ${{ inputs.github-token }}' \
+        -d "{
+             \"state\":\"success\",
+             \"log_url\": \"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",
+             \"environment_url\": \"${{ inputs.environment-url }}\"
+            }"
+

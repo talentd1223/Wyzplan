@@ -1,0 +1,71 @@
+version: "3.8"
+services:
+  django:
+    image: "wyzplan-dev"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    stdin_open: true
+    tty: true
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:delegated
+      - $HOME/.gitconfig:/home/developer/.gitconfig:ro
+      - $HOME/.git-hooks:/home/developer/.git-hooks:ro
+      - $HOME/.ssh:/home/developer/.ssh:ro
+    environment:
+      - SHELL=/bin/bash
+      - DB_HOST=database
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://developer:developer@database:5432/wyzplan
+      - PLAID_CLIENT_ID
+      - PLAID_COUNTRY_CODES=US
+      - PLAID_ENV=Sandbox
+      - PLAID_PRODUCTS
+      - PLAID_SECRET
+    depends_on:
+      - database
+      - redis
+    working_dir: /app/app
+    command: make setup-and-run
+  django_ci:
+    profiles:
+    - ci
+    image: "wyzplan-dev"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    stdin_open: true
+    tty: true
+    environment:
+      - SHELL=/bin/bash
+      - DB_HOST=database
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://developer:developer@database:5432/wyzplan
+    depends_on:
+      - database
+      - redis
+    working_dir: /app
+    command: make setup-and-run
+  database:
+    image: "postgres:13.5"
+    restart: on-failure
+    environment:
+      - POSTGRES_PASSWORD=developer
+      - POSTGRES_USER=developer
+      - POSTGRES_DB=wyzplan
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres:/var/lib/postgresql/data
+  redis:
+    image: 'redis:6.2'
+    restart: on-failure
+    volumes:
+      - redis:/data
+volumes:
+  postgres: {}
+  redis: {}
+

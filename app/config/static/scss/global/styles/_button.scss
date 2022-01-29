@@ -1,0 +1,139 @@
+%button {
+  @extend %heading8;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 40px;
+  width: max-content;
+  min-height: 52px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+%round-button {
+  @extend %button;
+
+  min-height: 48px;
+  padding: 8px 8px 8px 16px;
+}
+
+%button-icon {
+  display: block;
+  content: " ";
+  background-size: 16px 16px;
+  height: 16px;
+  width: 16px;
+}
+
+@mixin button($type: "solid", $reverse: false, $starting-icon: null, $ending-icon: null, $override-primary-color: $primary-color, $large: false) {
+  @extend %button;
+
+  @if ($large) {
+    min-height: 68px;
+  }
+
+  $primary-color: $override-primary-color;
+  $icon-color: $primary-color;
+
+  @if $type == "solid" {
+    border: none;
+    text-decoration: none;
+
+    @if $reverse {
+      background-color: $background-color;
+      color: $on-background-color;
+    }
+
+    @else {
+      background-color: $secondary-color;
+      color: $on-secondary-color;
+    }
+  }
+
+  @else if $type == "outline" {
+    text-decoration: none;
+
+    @if $reverse {
+      border: 1px solid rgba($color: $white, $alpha: 0.12);
+      background-color: $transparent;
+      color: $on-primary-color;
+      $icon-color: $on-primary-color;
+    }
+
+    @else {
+      border: 1px solid #{$winter-is-coming};
+      background-color: $surface-color;
+      color: $on-surface-color;
+    }
+  }
+
+  @else if $type == "text" {
+    background-color: $transparent;
+    border: none;
+    text-decoration: underline;
+
+    @if $reverse {
+      color: $on-primary-color;
+      text-decoration-color: $on-primary-color;
+      $icon-color: $on-primary-color;
+    }
+
+    @else {
+      color: $primary-color;
+      text-decoration-color: $primary-color;
+    }
+  }
+
+  @if $starting-icon {
+    &::before {
+      @extend %button-icon;
+
+      background-image: url(getIcon($starting-icon, $icon-color));
+      margin-right: 10px;
+    }
+  }
+
+  @if $ending-icon {
+    &::after {
+      @extend %button-icon;
+
+      background-image: url(getIcon($ending-icon, $icon-color));
+      margin-left: 10px;
+    }
+  }
+}
+
+@mixin round-button($reverse: false) {
+  @extend %round-button;
+
+  $icon-color: $primary-color;
+
+  text-decoration: none;
+  border-radius: 48px;
+
+  @if $reverse {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: $primary-color;
+    color: $on-primary-color;
+  }
+
+  @else {
+    border: 1px solid #{$winter-is-coming};
+    background-color: $surface-color;
+    color: $on-surface-color;
+  }
+
+  &::after {
+    display: block;
+    content: url(getIcon("arrow-right", $icon-color));
+    background-size: 32px 32px;
+    background-color: $secondary-color;
+    border-radius: 16px;
+    padding: 8px;
+    height: 32px;
+    width: 32px;
+    margin-left: 10px;
+  }
+}

@@ -1,0 +1,19 @@
+**/terraform
+**/*.tf
+**/.terraform
+**/.git
+**/.venv
+__pycache__/
+*.py[cod]
+**/node_modules/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+coverage_html_report
+
+# may be able to add sass dir to this

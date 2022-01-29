@@ -1,0 +1,43 @@
+@import "values/color";
+@import "values/typography";
+@import "values/dimensions";
+@import "resources/icons";
+
+$breakpoint-small: "all and (min-width: #{$small-display})";
+$breakpoint-medium: "all and (min-width: #{$medium-display})";
+$breakpoint-large: "all and (min-width: #{$large-display})";
+$breakpoint-x-large: "all and (min-width: #{$x-large-display})";
+
+$primary-color: $breakout;
+$on-primary-color: $white;
+
+$secondary-color: $nacho-mama;
+$on-secondary-color: $breakout;
+
+$background-color: $when-doves-cry;
+$on-background-color: $breakout;
+
+$surface-color: $white;
+$on-surface-color: $breakout;
+
+$primary-typeface: $sans-example-1;
+$secondary-typeface: $sans-example-2;
+
+$standard-content-width: rem(1024px);
+$max-page-width: 0;
+$page-gutter: 0;
+
+$tiny-space: 24px;
+$small-space: 52px;
+$regular-space: 72px;
+
+$medium-tiny-space: 28px;
+$medium-small-space: 52px;
+$medium-regular-space: 72px;
+$medium-large-space: 86px;
+$medium-huge-space: 124px;
+
+$short-animation: 0.2s;
+
+// styles - inherit theme //
+// scss files imported below this line will inherit the above themes

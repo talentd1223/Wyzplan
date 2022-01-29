@@ -1,0 +1,26 @@
+
+
+name: 'Extract Branch Name'
+description: 'Determines the name of the currently checked out git branch'
+outputs:
+  branch:
+    description: "The current branch"
+    value: ${{ steps.extract_branch.outputs.branch }}
+  branch-slug:
+    description: "A naively sluggified branch name where forward slashes are replaced with hyphens for use in docker image tags"
+    value: ${{ steps.extract_branch.outputs.branch-slug }}
+runs:
+  using: "composite"
+  steps:
+    - id: extract_branch
+
+      run: |
+        if [ -z ${GITHUB_HEAD_REF+x} ] || [ -z "$GITHUB_HEAD_REF" ]; then
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+          echo "##[set-output name=branch-slug;]$(echo ${GITHUB_REF#refs/heads/} | sed -e 's/\//-/g')"
+        else
+          echo "##[set-output name=branch;]$(echo ${GITHUB_HEAD_REF#refs/heads/})"
+          echo "##[set-output name=branch-slug;]$(echo ${GITHUB_HEAD_REF#refs/heads/} | sed -e 's/\//-/g')"
+        fi
+      shell: bash
+

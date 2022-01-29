@@ -1,0 +1,38 @@
+name: Deploy To Production
+on:
+  workflow_dispatch:
+
+env:
+  HEROKU_UAT_APP_NAME: wyzplan-staging # we already have a build image here from running tests
+  HEROKU_APP_NAME: wyzplan-production
+  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+jobs:
+  deploy:
+    name: Deploy To Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Extract Branch Name
+        uses: ./.github/actions/extract-branch-name
+        id: extract_branch
+      - name: Ensure Valid Branch For Environment
+        # It would be ideal here if we could even validate that it has been deployed successfully to uat
+        # or some check related to that has passed. We could use the deployments api to ensure it has been deployed to uat.
+        if: ${{ !startsWith(steps.extract_branch.outputs.branch,'release-') }}
+        shell: bash
+        run: exit 1
+      - name: Log in to Heroku container registry
+        run: heroku container:login
+      - name: Pull Source Image From UAT
+        id: pull-source-image
+        run: |
+          heroku container:pull web -a ${{ env.HEROKU_UAT_APP_NAME }}
+      - name: Deploy
+        uses: ./.github/actions/heroku-container-deploy
+        with:
+          source-image: registry.heroku.com/${{ env.HEROKU_UAT_APP_NAME }}/web
+          heroku-app-name: ${{ env.HEROKU_APP_NAME }}
+          environment-url: "https://wyzplan-production.herokuapp.com/"
+          production-environment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
